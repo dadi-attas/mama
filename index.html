@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>מעקב הוצאות - אמא</title>
+  <link rel="manifest" href="manifest.json" />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Heebo', sans-serif;
+      background: #f5f7fa;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+    #app { max-width: 480px; margin: 0 auto; min-height: 100vh; }
+
+    /* מסך בחירת משתמש */
+    .user-select-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 32px 24px;
+      background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
+    }
+    .user-select-screen h1 {
+      color: white;
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .user-select-screen p {
+      color: rgba(255,255,255,0.8);
+      font-size: 14px;
+      margin-bottom: 40px;
+      text-align: center;
+    }
+    .user-buttons { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 280px; }
+    .user-btn {
+      background: white;
+      border: none;
+      border-radius: 12px;
+      padding: 16px 24px;
+      font-family: 'Heebo', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: #1a73e8;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .user-btn:active { transform: scale(0.97); }
+
+    /* דשבורד */
+    .dashboard-screen { display: none; padding: 0; }
+    .top-bar {
+      background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
+      padding: 20px 20px 24px;
+      color: white;
+    }
+    .top-bar h1 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .top-bar .user-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .top-bar .username { font-size: 13px; opacity: 0.85; }
+    .switch-user-btn {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-family: 'Heebo', sans-serif;
+      font-size: 12px;
+      padding: 4px 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- מסך בחירת משתמש -->
+  <div class="user-select-screen" id="userSelectScreen">
+    <h1>מעקב הוצאות</h1>
+    <p>טיפול באמא - בחר את שמך להמשך</p>
+    <div class="user-buttons">
+      <button class="user-btn" onclick="selectUser('dadi', 'דדי', 'admin')">דדי</button>
+      <button class="user-btn" onclick="selectUser('eti', 'אתי', 'viewer')">אתי</button>
+      <button class="user-btn" onclick="selectUser('orly', 'אורלי', 'viewer')">אורלי</button>
+    </div>
+  </div>
+
+  <!-- דשבורד -->
+  <div class="dashboard-screen" id="dashboardScreen">
+    <div class="top-bar">
+      <div class="user-info">
+        <h1>מעקב הוצאות - אמא</h1>
+        <button class="switch-user-btn" onclick="switchUser()">החלף משתמש</button>
+      </div>
+      <div class="username" id="currentUserName"></div>
+    </div>
+    <div style="padding:24px; text-align:center; color:#888;">
+      <p>דשבורד בקרוב...</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getStorage } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBu6wAd5pErreSzhScx5kq2wZozC9auJ1M",
+    authDomain: "mama-895ec.firebaseapp.com",
+    projectId: "mama-895ec",
+    storageBucket: "mama-895ec.firebasestorage.app",
+    messagingSenderId: "898334683846",
+    appId: "1:898334683846:web:9a22d3054cf04816ff9dc7"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  window.db = getFirestore(app);
+  window.storage = getStorage(app);
+  console.log('Firebase מחובר ✅');
+</script>
+
+<script>
+  // בחירת משתמש
+  function selectUser(id, name, role) {
+    localStorage.setItem('mama_user_id', id);
+    localStorage.setItem('mama_user_name', name);
+    localStorage.setItem('mama_user_role', role);
+    showDashboard(name);
+  }
+
+  function switchUser() {
+    localStorage.removeItem('mama_user_id');
+    localStorage.removeItem('mama_user_name');
+    localStorage.removeItem('mama_user_role');
+    document.getElementById('dashboardScreen').style.display = 'none';
+    document.getElementById('userSelectScreen').style.display = 'flex';
+  }
+
+  function showDashboard(name) {
+    document.getElementById('userSelectScreen').style.display = 'none';
+    document.getElementById('dashboardScreen').style.display = 'block';
+    document.getElementById('currentUserName').textContent = 'שלום, ' + name;
+  }
+
+  // בדיקה אם כבר נכנס
+  const savedUser = localStorage.getItem('mama_user_name');
+  if (savedUser) {
+    showDashboard(savedUser);
+  }
+
+  // PWA Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js');
+  }
+</script>
+
+</body>
+</html>
