@@ -253,6 +253,8 @@
   window.db = getFirestore(app);
   window.storage = getStorage(app);
   console.log('Firebase מחובר ✅');
+  window.firebaseReady = true;
+  window.dispatchEvent(new Event('firebaseReady'));
 </script>
 
 <script>
@@ -364,9 +366,17 @@
   }
 
   // בדיקה אם כבר נכנס
-  const savedUser = localStorage.getItem('mama_user_name');
-  if (savedUser) {
-    showDashboard(savedUser);
+  function initApp() {
+    const savedUser = localStorage.getItem('mama_user_name');
+    if (savedUser) {
+      showDashboard(savedUser);
+    }
+  }
+
+  if (window.firebaseReady) {
+    initApp();
+  } else {
+    window.addEventListener('firebaseReady', initApp);
   }
 
   // PWA Service Worker
