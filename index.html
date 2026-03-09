@@ -80,6 +80,42 @@
       padding: 4px 10px;
       cursor: pointer;
     }
+    /* דשבורד */
+    .dashboard-content { padding: 16px; }
+
+    .summary-cards-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .summary-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+      border-right: 4px solid #1a73e8;
+    }
+
+    .summary-card:active { transform: scale(0.98); box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+
+    .card-label { font-size: 15px; color: #555; font-weight: 500; }
+
+    .card-amount { font-size: 22px; font-weight: 700; color: #1a1a2e; }
+
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: #aaa;
+    }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-text { font-size: 16px; }
   </style>
 </head>
 <body>
@@ -105,8 +141,36 @@
       </div>
       <div class="username" id="currentUserName"></div>
     </div>
-    <div style="padding:24px; text-align:center; color:#888;">
-      <p>דשבורד בקרוב...</p>
+    <div class="dashboard-content" id="dashboardContent">
+      <!-- כרטיסי סיכום ראשיים -->
+      <div class="summary-cards-section">
+        <div class="summary-card" onclick="openHistory('family_expense')">
+          <div class="card-label">הוצאות פרטיות של אחים</div>
+          <div class="card-amount" id="totalFamilyExpense">₪0</div>
+        </div>
+        <div class="summary-card" onclick="openHistory('parent_funded_expense')">
+          <div class="card-label">הוצאות מכספי ההורה</div>
+          <div class="card-amount" id="totalParentFunded">₪0</div>
+        </div>
+        <div class="summary-card" onclick="openHistory('advance_to_sibling')">
+          <div class="card-label">העברות לאחים</div>
+          <div class="card-amount" id="totalAdvances">₪0</div>
+        </div>
+        <div class="summary-card" onclick="openHistory('reimbursement_to_sibling')">
+          <div class="card-label">החזרים</div>
+          <div class="card-amount" id="totalReimbursements">₪0</div>
+        </div>
+        <div class="summary-card" onclick="openHistory('all')">
+          <div class="card-label">סך כל הפעולות</div>
+          <div class="card-amount" id="totalTransactions">0</div>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div class="empty-state" id="emptyState" style="display:none;">
+        <div class="empty-icon">📋</div>
+        <div class="empty-text">עדיין לא הוזנו תנועות</div>
+      </div>
     </div>
   </div>
 
@@ -154,6 +218,44 @@
     document.getElementById('userSelectScreen').style.display = 'none';
     document.getElementById('dashboardScreen').style.display = 'block';
     document.getElementById('currentUserName').textContent = 'שלום, ' + name;
+    loadDashboard();
+  }
+
+  // פתיחת היסטוריה (יושלם בפרק 4)
+  function openHistory(type) {
+    console.log('פתיחת היסטוריה:', type);
+  }
+
+  // טעינת נתונים לדשבורד
+  async function loadDashboard() {
+    try {
+      const { collection, getDocs, query, where } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const q = query(collection(window.db, 'transactions'), where('status', '==', 'active'));
+      const snapshot = await getDocs(q);
+      const transactions = [];
+      snapshot.forEach(doc => transactions.push({ id: doc.id, ...doc.data() }));
+
+      let familyExpense = 0, parentFunded = 0, advances = 0, reimbursements = 0;
+
+      transactions.forEach(t => {
+        if (t.type === 'family_expense') familyExpense += t.amount;
+        if (t.type === 'parent_funded_expense') parentFunded += t.amount;
+        if (t.type === 'advance_to_sibling') advances += t.amount;
+        if (t.type === 'reimbursement_to_sibling') reimbursements += t.amount;
+      });
+
+      document.getElementById('totalFamilyExpense').textContent = '₪' + familyExpense.toLocaleString();
+      document.getElementById('totalParentFunded').textContent = '₪' + parentFunded.toLocaleString();
+      document.getElementById('totalAdvances').textContent = '₪' + advances.toLocaleString();
+      document.getElementById('totalReimbursements').textContent = '₪' + reimbursements.toLocaleString();
+      document.getElementById('totalTransactions').textContent = transactions.length;
+
+      if (transactions.length === 0) {
+        document.getElementById('emptyState').style.display = 'block';
+      }
+    } catch(e) {
+      console.error('שגיאה בטעינת נתונים:', e);
+    }
   }
 
   // בדיקה אם כבר נכנס
