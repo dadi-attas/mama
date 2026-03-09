@@ -957,6 +957,32 @@
       { label: 'תאריך יצירה', value: t.createdAt ? new Date(t.createdAt).toLocaleDateString('he-IL') : '—' },
     ];
 
+    // היסטוריית עריכות
+    let historyBlock = '';
+    if (t.previousData) {
+      const prev = t.previousData;
+      const changes = [];
+      if (prev.amount !== t.amount) changes.push(`סכום: ₪${prev.amount} ← ₪${t.amount}`);
+      if (prev.type !== t.type) changes.push(`סוג: ${typeLabels[prev.type] || prev.type} ← ${typeLabels[t.type] || t.type}`);
+      if (prev.personId !== t.personId) changes.push(`שם: ${personLabels[prev.personId] || prev.personId || '—'} ← ${personLabels[t.personId] || t.personId || '—'}`);
+      if (prev.date !== t.date) changes.push(`תאריך: ${prev.date} ← ${t.date}`);
+      if (prev.category !== t.category) changes.push(`קטגוריה: ${prev.category || '—'} ← ${t.category || '—'}`);
+      if (prev.description !== t.description) changes.push(`תיאור: ${prev.description || '—'} ← ${t.description || '—'}`);
+      if (prev.notes !== t.notes) changes.push(`הערות: ${prev.notes || '—'} ← ${t.notes || '—'}`);
+
+      historyBlock = `
+        <div class="detail-card" style="border-right: 3px solid #ff9800;">
+          <div style="font-size:13px; font-weight:700; color:#e65100; margin-bottom:12px;">📝 נערך - ${t.editReason || ''}</div>
+          ${changes.length > 0 ? changes.map(c => `
+            <div class="detail-row">
+              <div class="detail-value" style="max-width:100%; font-size:13px; color:#555;">${c}</div>
+            </div>
+          `).join('') : '<div style="font-size:13px; color:#999;">לא זוהו שינויים בשדות</div>'}
+          <div style="font-size:12px; color:#bbb; margin-top:8px;">עודכן: ${t.updatedAt ? new Date(t.updatedAt).toLocaleDateString('he-IL') : '—'}</div>
+        </div>
+      `;
+    }
+
     const adminButtons = isAdmin ? `
       <div class="detail-actions">
         <button class="edit-btn" onclick="openEditScreen()">ערוך פעולה</button>
@@ -975,6 +1001,7 @@
         `).join('')}
       </div>
       ${adminButtons}
+      ${historyBlock}
     `;
   }
 
