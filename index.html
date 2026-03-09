@@ -316,6 +316,70 @@
     .history-item-desc { font-size: 14px; color: #1a1a2e; font-weight: 500; margin-bottom: 3px; }
     .history-item-meta { font-size: 12px; color: #999; }
     .history-item-amount { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-right: 12px; white-space: nowrap; }
+    /* מסך פירוט */
+    .detail-body { padding: 20px; }
+    .detail-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+    .detail-amount {
+      font-size: 36px;
+      font-weight: 700;
+      color: #1a1a2e;
+      text-align: center;
+      padding: 20px 0;
+      border-bottom: 1px solid #f0f0f0;
+      margin-bottom: 16px;
+    }
+    .detail-type {
+      font-size: 14px;
+      color: #1a73e8;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 10px 0;
+      border-bottom: 1px solid #f9f9f9;
+    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-label { font-size: 13px; color: #888; }
+    .detail-value { font-size: 14px; color: #1a1a2e; font-weight: 500; text-align: left; max-width: 60%; }
+    .detail-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .edit-btn {
+      flex: 1;
+      background: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-family: 'Heebo', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .archive-btn {
+      flex: 1;
+      background: transparent;
+      color: #c62828;
+      border: 1.5px solid #c62828;
+      border-radius: 12px;
+      padding: 14px;
+      font-family: 'Heebo', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -407,6 +471,15 @@
       <div class="empty-icon">📋</div>
       <div class="empty-text">אין תנועות להצגה</div>
     </div>
+  </div>
+
+  <!-- מסך פירוט פעולה -->
+  <div class="add-screen" id="detailScreen" style="display:none;">
+    <div class="screen-header">
+      <button class="back-btn" onclick="closeDetailScreen()">→ חזרה</button>
+      <h2>פירוט פעולה</h2>
+    </div>
+    <div class="detail-body" id="detailBody"></div>
   </div>
 
   <!-- מסך הוספת פעולה -->
@@ -786,9 +859,75 @@
     document.getElementById('historyScreen').style.display = 'none';
   }
 
+  let currentTransaction = null;
+
   function openDetail(t) {
-    // יושלם בחלק ב'
-    console.log('פירוט:', t);
+    currentTransaction = t;
+    document.getElementById('detailScreen').style.display = 'block';
+
+    const role = localStorage.getItem('mama_user_role');
+    const isAdmin = role === 'admin';
+
+    const personName = t.personId ? (personLabels[t.personId] || t.personId) : '—';
+    const rows = [
+      { label: 'תאריך', value: t.date },
+      { label: 'סוג פעולה', value: typeLabels[t.type] || t.type },
+      { label: 'שם קשור', value: personName },
+      { label: 'קטגוריה', value: t.category || '—' },
+      { label: 'תיאור', value: t.description || '—' },
+      { label: 'הערות', value: t.notes || '—' },
+      { label: 'הוזן על ידי', value: personLabels[t.createdBy] || t.createdBy || '—' },
+      { label: 'תאריך יצירה', value: t.createdAt ? new Date(t.createdAt).toLocaleDateString('he-IL') : '—' },
+    ];
+
+    const adminButtons = isAdmin ? `
+      <div class="detail-actions">
+        <button class="edit-btn" onclick="openEditScreen()">עריכה</button>
+        <button class="archive-btn" onclick="archiveTransaction()">ארכוב</button>
+      </div>
+    ` : '';
+
+    document.getElementById('detailBody').innerHTML = `
+      <div class="detail-card">
+        <div class="detail-amount">₪${(t.amount || 0).toLocaleString()}</div>
+        <div class="detail-type">${typeLabels[t.type] || t.type}</div>
+        ${rows.map(r => `
+          <div class="detail-row">
+            <div class="detail-label">${r.label}</div>
+            <div class="detail-value">${r.value}</div>
+          </div>
+        `).join('')}
+      </div>
+      ${adminButtons}
+    `;
+  }
+
+  function closeDetailScreen() {
+    document.getElementById('detailScreen').style.display = 'none';
+    currentTransaction = null;
+  }
+
+  async function archiveTransaction() {
+    if (!currentTransaction) return;
+    if (!confirm('לארכב פעולה זו?')) return;
+    try {
+      const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      await updateDoc(doc(window.db, 'transactions', currentTransaction.id), {
+        status: 'archived',
+        updatedAt: new Date().toISOString()
+      });
+      closeDetailScreen();
+      closeHistoryScreen();
+      await loadDashboard();
+      alert('הפעולה אורכבה ✅');
+    } catch(e) {
+      alert('שגיאה: ' + e.message);
+    }
+  }
+
+  function openEditScreen() {
+    // יושלם בפרק 5
+    alert('עריכה תתווסף בפרק הבא');
   }
 
   // טעינת נתונים לדשבורד
