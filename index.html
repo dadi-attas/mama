@@ -482,6 +482,83 @@
     <div class="detail-body" id="detailBody"></div>
   </div>
 
+  <!-- מסך עריכת פעולה -->
+  <div class="add-screen" id="editScreen" style="display:none;">
+    <div class="screen-header">
+      <button class="back-btn" onclick="closeEditScreen()">→ חזרה</button>
+      <h2>עריכת פעולה</h2>
+    </div>
+    <div class="form-body">
+
+      <div class="form-group">
+        <label>סוג פעולה *</label>
+        <select id="editType" onchange="onEditTypeChange()">
+          <option value="">בחר סוג...</option>
+          <option value="family_expense">הוצאה פרטית של אח/אחות</option>
+          <option value="parent_funded_expense">הוצאה מכספי ההורה</option>
+          <option value="advance_to_sibling">העברה לאח/אחות מכספי ההורה</option>
+          <option value="reimbursement_to_sibling">החזר לאח/אחות</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="editPersonField" style="display:none;">
+        <label id="editPersonLabel">שם האח/אחות *</label>
+        <select id="editPerson">
+          <option value="">בחר...</option>
+          <option value="dadi">דדי</option>
+          <option value="eti">אתי</option>
+          <option value="orly">אורלי</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>תאריך *</label>
+        <input type="date" id="editDate" />
+      </div>
+
+      <div class="form-group">
+        <label>סכום (₪) *</label>
+        <input type="number" id="editAmount" placeholder="0" min="0" />
+      </div>
+
+      <div class="form-group" id="editCategoryField" style="display:none;">
+        <label>קטגוריה</label>
+        <select id="editCategory">
+          <option value="">בחר קטגוריה...</option>
+          <option value="ציוד רפואי">ציוד רפואי</option>
+          <option value="ציוד סיעודי">ציוד סיעודי</option>
+          <option value="חיתולים / מוצרי ספיגה">חיתולים / מוצרי ספיגה</option>
+          <option value="אגרות / תשלומים למדינה">אגרות / תשלומים למדינה</option>
+          <option value="מטפל / שירות טיפולי">מטפל / שירות טיפולי</option>
+          <option value="חוות דעת / ייעוץ רפואי">חוות דעת / ייעוץ רפואי</option>
+          <option value="תרופות / פארם">תרופות / פארם</option>
+          <option value="נסיעות / לוגיסטיקה">נסיעות / לוגיסטיקה</option>
+          <option value="אחר">אחר</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>תיאור</label>
+        <input type="text" id="editDescription" placeholder="תיאור קצר..." />
+      </div>
+
+      <div class="form-group">
+        <label>הערות</label>
+        <textarea id="editNotes" placeholder="הערות נוספות..." rows="3"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>סיבת עריכה *</label>
+        <input type="text" id="editReason" placeholder="למה בוצעה העריכה?" />
+      </div>
+
+      <div class="form-error" id="editFormError" style="display:none;"></div>
+
+      <button class="save-btn" onclick="saveEdit()">שמור עריכה</button>
+
+    </div>
+  </div>
+
   <!-- מסך הוספת פעולה -->
   <div class="add-screen" id="addScreen" style="display:none;">
     <div class="screen-header">
@@ -882,8 +959,7 @@
 
     const adminButtons = isAdmin ? `
       <div class="detail-actions">
-        <button class="edit-btn" onclick="openEditScreen()">עריכה</button>
-        <button class="archive-btn" onclick="archiveTransaction()">ארכוב</button>
+        <button class="edit-btn" onclick="openEditScreen()">ערוך פעולה</button>
       </div>
     ` : '';
 
@@ -926,8 +1002,111 @@
   }
 
   function openEditScreen() {
-    // יושלם בפרק 5
-    alert('עריכה תתווסף בפרק הבא');
+    if (!currentTransaction) return;
+    const t = currentTransaction;
+
+    document.getElementById('editScreen').style.display = 'block';
+    document.getElementById('editType').value = t.type || '';
+    document.getElementById('editPerson').value = t.personId || '';
+    document.getElementById('editDate').value = t.date || '';
+    document.getElementById('editAmount').value = t.amount || '';
+    document.getElementById('editCategory').value = t.category || '';
+    document.getElementById('editDescription').value = t.description || '';
+    document.getElementById('editNotes').value = t.notes || '';
+    document.getElementById('editReason').value = '';
+    document.getElementById('editFormError').style.display = 'none';
+    onEditTypeChange();
+  }
+
+  function closeEditScreen() {
+    document.getElementById('editScreen').style.display = 'none';
+  }
+
+  function onEditTypeChange() {
+    const type = document.getElementById('editType').value;
+    const personField = document.getElementById('editPersonField');
+    const personLabel = document.getElementById('editPersonLabel');
+    const categoryField = document.getElementById('editCategoryField');
+
+    if (type === 'family_expense' || type === 'advance_to_sibling' || type === 'reimbursement_to_sibling') {
+      personField.style.display = 'block';
+      if (type === 'advance_to_sibling') personLabel.textContent = 'למי הועבר *';
+      else if (type === 'reimbursement_to_sibling') personLabel.textContent = 'למי הוחזר *';
+      else personLabel.textContent = 'שם האח/אחות *';
+    } else {
+      personField.style.display = 'none';
+    }
+
+    if (type === 'family_expense' || type === 'parent_funded_expense') {
+      categoryField.style.display = 'block';
+    } else {
+      categoryField.style.display = 'none';
+    }
+  }
+
+  async function saveEdit() {
+    const type = document.getElementById('editType').value;
+    const date = document.getElementById('editDate').value;
+    const amount = document.getElementById('editAmount').value;
+    const person = document.getElementById('editPerson').value;
+    const reason = document.getElementById('editReason').value.trim();
+
+    if (!type) return showEditError('יש לבחור סוג פעולה');
+    if (!date) return showEditError('יש לבחור תאריך');
+    if (!amount || Number(amount) <= 0) return showEditError('יש להזין סכום תקין');
+    if ((type === 'family_expense' || type === 'advance_to_sibling' || type === 'reimbursement_to_sibling') && !person) {
+      return showEditError('יש לבחור אח/אחות');
+    }
+    if (!reason) return showEditError('יש להזין סיבת עריכה');
+
+    const saveBtn = document.querySelector('#editScreen .save-btn');
+    saveBtn.textContent = 'שומר...';
+    saveBtn.disabled = true;
+
+    try {
+      const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+
+      const previousData = {
+        type: currentTransaction.type,
+        personId: currentTransaction.personId,
+        date: currentTransaction.date,
+        amount: currentTransaction.amount,
+        category: currentTransaction.category,
+        description: currentTransaction.description,
+        notes: currentTransaction.notes,
+      };
+
+      await updateDoc(doc(window.db, 'transactions', currentTransaction.id), {
+        type,
+        personId: person || null,
+        date,
+        amount: Number(amount),
+        category: document.getElementById('editCategory').value || '',
+        description: document.getElementById('editDescription').value.trim(),
+        notes: document.getElementById('editNotes').value.trim(),
+        updatedAt: new Date().toISOString(),
+        editReason: reason,
+        previousData: previousData
+      });
+
+      closeEditScreen();
+      closeDetailScreen();
+      closeHistoryScreen();
+      await loadDashboard();
+      alert('הפעולה עודכנה ✅');
+
+    } catch(e) {
+      showEditError('שגיאה בשמירה: ' + e.message);
+    } finally {
+      saveBtn.textContent = 'שמור עריכה';
+      saveBtn.disabled = false;
+    }
+  }
+
+  function showEditError(msg) {
+    const el = document.getElementById('editFormError');
+    el.textContent = msg;
+    el.style.display = 'block';
   }
 
   // טעינת נתונים לדשבורד
