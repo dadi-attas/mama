@@ -277,6 +277,45 @@
       margin-top: 8px;
     }
     .save-btn:active { background: #0d47a1; }
+    /* מסך היסטוריה */
+    .history-summary {
+      display: flex;
+      gap: 12px;
+      padding: 16px;
+      background: white;
+      border-bottom: 1px solid #eee;
+    }
+    .history-stat {
+      flex: 1;
+      text-align: center;
+      padding: 12px;
+      background: #f5f7fa;
+      border-radius: 12px;
+    }
+    .history-stat-label { font-size: 12px; color: #888; margin-bottom: 4px; }
+    .history-stat-value { font-size: 20px; font-weight: 700; color: #1a1a2e; }
+
+    .history-list { padding: 16px; }
+
+    .history-item {
+      background: white;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-right: 3px solid #1a73e8;
+      transition: transform 0.1s;
+    }
+    .history-item:active { transform: scale(0.98); }
+    .history-item-right { flex: 1; }
+    .history-item-type { font-size: 13px; color: #1a73e8; font-weight: 600; margin-bottom: 3px; }
+    .history-item-desc { font-size: 14px; color: #1a1a2e; font-weight: 500; margin-bottom: 3px; }
+    .history-item-meta { font-size: 12px; color: #999; }
+    .history-item-amount { font-size: 18px; font-weight: 700; color: #1a1a2e; margin-right: 12px; white-space: nowrap; }
   </style>
 </head>
 <body>
@@ -344,6 +383,29 @@
         <div class="empty-icon">📋</div>
         <div class="empty-text">עדיין לא הוזנו תנועות</div>
       </div>
+    </div>
+  </div>
+
+  <!-- מסך היסטוריית תנועות -->
+  <div class="add-screen" id="historyScreen" style="display:none;">
+    <div class="screen-header">
+      <button class="back-btn" onclick="closeHistoryScreen()">→ חזרה</button>
+      <h2 id="historyTitle">היסטוריית תנועות</h2>
+    </div>
+    <div class="history-summary">
+      <div class="history-stat">
+        <div class="history-stat-label">סכום כולל</div>
+        <div class="history-stat-value" id="historyTotal">₪0</div>
+      </div>
+      <div class="history-stat">
+        <div class="history-stat-label">מספר תנועות</div>
+        <div class="history-stat-value" id="historyCount">0</div>
+      </div>
+    </div>
+    <div class="history-list" id="historyList"></div>
+    <div class="empty-state" id="historyEmpty" style="display:none;">
+      <div class="empty-icon">📋</div>
+      <div class="empty-text">אין תנועות להצגה</div>
     </div>
   </div>
 
@@ -650,9 +712,83 @@
     });
   }
 
-  // פתיחת היסטוריה (יושלם בפרק 4)
-  function openHistory(type) {
-    console.log('פתיחת היסטוריה:', type);
+  const typeLabels = {
+    'family_expense': 'הוצאה פרטית של אח/אחות',
+    'parent_funded_expense': 'הוצאה מכספי ההורה',
+    'advance_to_sibling': 'העברה לאח/אחות',
+    'reimbursement_to_sibling': 'החזר לאח/אחות'
+  };
+
+  const personLabels = {
+    'dadi': 'דדי',
+    'eti': 'אתי',
+    'orly': 'אורלי'
+  };
+
+  let allTransactions = [];
+
+  function openHistory(filterType) {
+    const screen = document.getElementById('historyScreen');
+    screen.style.display = 'block';
+
+    let filtered = allTransactions.filter(t => t.status === 'active');
+    let title = 'כל התנועות';
+
+    if (filterType === 'all') {
+      title = 'כל התנועות';
+    } else if (filterType.startsWith('sibling_')) {
+      const personId = filterType.replace('sibling_', '');
+      filtered = filtered.filter(t => t.personId === personId);
+      title = 'תנועות של ' + (personLabels[personId] || personId);
+    } else {
+      filtered = filtered.filter(t => t.type === filterType);
+      title = typeLabels[filterType] || filterType;
+    }
+
+    // סדר כרונולוגי הפוך
+    filtered.sort((a, b) => b.date.localeCompare(a.date));
+
+    document.getElementById('historyTitle').textContent = title;
+    document.getElementById('historyCount').textContent = filtered.length;
+
+    // סכום כולל
+    const total = filtered.reduce((s, t) => s + (t.amount || 0), 0);
+    document.getElementById('historyTotal').textContent = '₪' + total.toLocaleString();
+
+    // רשימה
+    const list = document.getElementById('historyList');
+    list.innerHTML = '';
+
+    if (filtered.length === 0) {
+      document.getElementById('historyEmpty').style.display = 'block';
+    } else {
+      document.getElementById('historyEmpty').style.display = 'none';
+      filtered.forEach(t => {
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        const personName = t.personId ? (personLabels[t.personId] || t.personId) : '';
+        const meta = [t.date, personName, t.category].filter(Boolean).join(' · ');
+        item.innerHTML = `
+          <div class="history-item-right">
+            <div class="history-item-type">${typeLabels[t.type] || t.type}</div>
+            <div class="history-item-desc">${t.description || '(ללא תיאור)'}</div>
+            <div class="history-item-meta">${meta}</div>
+          </div>
+          <div class="history-item-amount">₪${(t.amount || 0).toLocaleString()}</div>
+        `;
+        item.onclick = () => openDetail(t);
+        list.appendChild(item);
+      });
+    }
+  }
+
+  function closeHistoryScreen() {
+    document.getElementById('historyScreen').style.display = 'none';
+  }
+
+  function openDetail(t) {
+    // יושלם בחלק ב'
+    console.log('פירוט:', t);
   }
 
   // טעינת נתונים לדשבורד
@@ -679,9 +815,12 @@
       document.getElementById('totalReimbursements').textContent = '₪' + reimbursements.toLocaleString();
       document.getElementById('totalTransactions').textContent = transactions.length;
 
+      allTransactions = transactions;
       renderSiblingCards(transactions);
       if (transactions.length === 0) {
         document.getElementById('emptyState').style.display = 'block';
+      } else {
+        document.getElementById('emptyState').style.display = 'none';
       }
     } catch(e) {
       console.error('שגיאה בטעינת נתונים:', e);
