@@ -442,7 +442,7 @@
   <div class="dashboard-screen" id="dashboardScreen">
     <div class="top-bar">
       <div class="user-info">
-        <h1>מעקב הוצאות הורים</h1>
+        <h1 id="mainTitle" onmousedown="startLongPress()" onmouseup="cancelLongPress()" ontouchstart="startLongPress()" ontouchend="cancelLongPress()">מעקב הוצאות הורים</h1>
         <button class="switch-user-btn" onclick="switchUser()">החלף משתמש</button>
       </div>
       <div class="username" id="currentUserName"></div>
@@ -713,6 +713,27 @@
     localStorage.removeItem('mama_user_role');
     document.getElementById('dashboardScreen').style.display = 'none';
     document.getElementById('userSelectScreen').style.display = 'flex';
+  }
+
+  let longPressTimer = null;
+
+  function startLongPress() {
+    longPressTimer = setTimeout(() => {
+      if (confirm('לחזור למסך בחירת משתמש?')) {
+        localStorage.removeItem('mama_user_id');
+        localStorage.removeItem('mama_user_name');
+        localStorage.removeItem('mama_user_role');
+        document.getElementById('dashboardScreen').style.display = 'none';
+        document.getElementById('userSelectScreen').style.display = 'flex';
+      }
+    }, 3000);
+  }
+
+  function cancelLongPress() {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
   }
 
   function showDashboard(name) {
