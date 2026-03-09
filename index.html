@@ -481,7 +481,6 @@
       <!-- כפתור הוספה - נראה רק לאדמין -->
       <div id="addBtnContainer" style="display:none;">
         <button class="add-btn" onclick="openAddScreen()">+ הוסף פעולה</button>
-        <button class="reset-btn" onclick="resetAllTransactions()">🗑️ איפוס כל התנועות (פיתוח)</button>
       </div>
 
       <!-- Empty state -->
@@ -717,13 +716,15 @@
 
   let longPressTimer = null;
 
-  function startLongPress() {
+  function startLongPress(e) {
+    if (e) e.preventDefault();
     longPressTimer = setTimeout(() => {
       if (confirm('לחזור למסך בחירת משתמש?')) {
         localStorage.removeItem('mama_user_id');
         localStorage.removeItem('mama_user_name');
         localStorage.removeItem('mama_user_role');
         document.getElementById('dashboardScreen').style.display = 'none';
+        document.getElementById('addBtnContainer').style.display = 'none';
         document.getElementById('userSelectScreen').style.display = 'flex';
       }
     }, 3000);
@@ -740,10 +741,11 @@
     document.getElementById('userSelectScreen').style.display = 'none';
     document.getElementById('dashboardScreen').style.display = 'block';
     document.getElementById('currentUserName').textContent = 'שלום, ' + name;
-    // כפתור הוספה רק לאדמין
     const role = localStorage.getItem('mama_user_role');
     if (role === 'admin') {
       document.getElementById('addBtnContainer').style.display = 'block';
+    } else {
+      document.getElementById('addBtnContainer').style.display = 'none';
     }
     loadDashboard();
   }
