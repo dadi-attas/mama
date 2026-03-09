@@ -442,8 +442,8 @@
   <div class="dashboard-screen" id="dashboardScreen">
     <div class="top-bar">
       <div class="user-info">
-        <h1 id="mainTitle" onmousedown="startLongPress()" onmouseup="cancelLongPress()" ontouchstart="startLongPress()" ontouchend="cancelLongPress()">מעקב הוצאות הורים</h1>
-        <button class="switch-user-btn" onclick="switchUser()">החלף משתמש</button>
+        <h1 id="mainTitle" onmousedown="startLongPress()" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()" ontouchstart="startLongPress(event)" ontouchend="cancelLongPress()" oncontextmenu="return false;" style="cursor:default; user-select:none;">מעקב הוצאות הורים</h1>
+
       </div>
       <div class="username" id="currentUserName"></div>
     </div>
