@@ -184,6 +184,18 @@
       transition: background 0.2s;
     }
     .add-btn:active { background: #0d47a1; }
+    .reset-btn {
+      width: 100%;
+      background: transparent;
+      color: #c62828;
+      border: 1.5px solid #c62828;
+      border-radius: 12px;
+      padding: 10px;
+      font-family: 'Heebo', sans-serif;
+      font-size: 13px;
+      cursor: pointer;
+      margin-bottom: 16px;
+    }
 
     /* מסך הוספה */
     .add-screen {
@@ -324,6 +336,7 @@
       <!-- כפתור הוספה - נראה רק לאדמין -->
       <div id="addBtnContainer" style="display:none;">
         <button class="add-btn" onclick="openAddScreen()">+ הוסף פעולה</button>
+        <button class="reset-btn" onclick="resetAllTransactions()">🗑️ איפוס כל התנועות (פיתוח)</button>
       </div>
 
       <!-- Empty state -->
@@ -458,6 +471,21 @@
       document.getElementById('addBtnContainer').style.display = 'block';
     }
     loadDashboard();
+  }
+
+  async function resetAllTransactions() {
+    if (!confirm('למחוק את כל התנועות? פעולה זו לא ניתנת לביטול.')) return;
+    try {
+      const { collection, getDocs, deleteDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const snapshot = await getDocs(collection(window.db, 'transactions'));
+      const deletes = [];
+      snapshot.forEach(d => deletes.push(deleteDoc(doc(window.db, 'transactions', d.id))));
+      await Promise.all(deletes);
+      await loadDashboard();
+      alert('כל התנועות נמחקו ✅');
+    } catch(e) {
+      alert('שגיאה במחיקה: ' + e.message);
+    }
   }
 
   // פתיחת/סגירת מסך הוספה
