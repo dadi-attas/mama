@@ -399,11 +399,6 @@
         <textarea id="txnNotes" placeholder="הערות נוספות..." rows="3"></textarea>
       </div>
 
-      <div class="form-group">
-        <label>קובץ מצורף (קבלה / חשבונית)</label>
-        <input type="file" id="txnFile" accept=".jpg,.jpeg,.png,.pdf" />
-      </div>
-
       <div class="form-error" id="formError" style="display:none;"></div>
 
       <button class="save-btn" onclick="saveTransaction()">שמור פעולה</button>
@@ -486,7 +481,6 @@
     document.getElementById('txnCategory').value = '';
     document.getElementById('txnDescription').value = '';
     document.getElementById('txnNotes').value = '';
-    document.getElementById('txnFile').value = '';
     document.getElementById('formError').style.display = 'none';
     onTypeChange();
   }
@@ -537,8 +531,49 @@
       document.getElementById('formError').style.display = 'block';
       return;
     }
-    // השמירה תתווסף בחלק ב'
-    alert('שמירה תתווסף בחלק הבא');
+
+    const saveBtn = document.querySelector('.save-btn');
+    saveBtn.textContent = 'שומר...';
+    saveBtn.disabled = true;
+
+    try {
+      const { collection, addDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+
+      const type = document.getElementById('txnType').value;
+      const person = document.getElementById('txnPerson').value;
+      const date = document.getElementById('txnDate').value;
+      const amount = Number(document.getElementById('txnAmount').value);
+      const category = document.getElementById('txnCategory').value;
+      const description = document.getElementById('txnDescription').value.trim();
+      const notes = document.getElementById('txnNotes').value.trim();
+
+      const txnData = {
+        type,
+        date,
+        amount,
+        category: category || '',
+        description: description || '',
+        notes: notes || '',
+        personId: person || null,
+        createdBy: localStorage.getItem('mama_user_id'),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: 'active'
+      };
+
+      await addDoc(collection(window.db, 'transactions'), txnData);
+
+      closeAddScreen();
+      await loadDashboard();
+
+    } catch(e) {
+      console.error('שגיאה בשמירה:', e);
+      document.getElementById('formError').textContent = 'שגיאה בשמירה, נסה שוב';
+      document.getElementById('formError').style.display = 'block';
+    } finally {
+      saveBtn.textContent = 'שמור פעולה';
+      saveBtn.disabled = false;
+    }
   }
 
   function renderSiblingCards(transactions) {
