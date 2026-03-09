@@ -168,6 +168,103 @@
       border-top: 1px solid #f0f0f0;
     }
     .empty-text { font-size: 16px; }
+    /* כפתור הוספה */
+    .add-btn {
+      width: 100%;
+      background: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 16px;
+      font-family: 'Heebo', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 16px;
+      transition: background 0.2s;
+    }
+    .add-btn:active { background: #0d47a1; }
+
+    /* מסך הוספה */
+    .add-screen {
+      position: fixed;
+      top: 0; right: 0; bottom: 0; left: 0;
+      background: #f5f7fa;
+      z-index: 100;
+      overflow-y: auto;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    .screen-header {
+      background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
+      padding: 20px;
+      color: white;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .screen-header h2 { font-size: 18px; font-weight: 700; }
+    .back-btn {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-family: 'Heebo', sans-serif;
+      font-size: 14px;
+      padding: 6px 12px;
+      cursor: pointer;
+    }
+    .form-body { padding: 20px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: #444;
+      margin-bottom: 6px;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      border: 1.5px solid #ddd;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-family: 'Heebo', sans-serif;
+      font-size: 15px;
+      color: #1a1a2e;
+      background: white;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus { border-color: #1a73e8; }
+    .form-error {
+      background: #ffebee;
+      color: #c62828;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+    .save-btn {
+      width: 100%;
+      background: #1a73e8;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 16px;
+      font-family: 'Heebo', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .save-btn:active { background: #0d47a1; }
   </style>
 </head>
 <body>
@@ -224,11 +321,93 @@
         <div id="siblingCards"></div>
       </div>
 
+      <!-- כפתור הוספה - נראה רק לאדמין -->
+      <div id="addBtnContainer" style="display:none;">
+        <button class="add-btn" onclick="openAddScreen()">+ הוסף פעולה</button>
+      </div>
+
       <!-- Empty state -->
       <div class="empty-state" id="emptyState" style="display:none;">
         <div class="empty-icon">📋</div>
         <div class="empty-text">עדיין לא הוזנו תנועות</div>
       </div>
+    </div>
+  </div>
+
+  <!-- מסך הוספת פעולה -->
+  <div class="add-screen" id="addScreen" style="display:none;">
+    <div class="screen-header">
+      <button class="back-btn" onclick="closeAddScreen()">→ חזרה</button>
+      <h2>הוספת פעולה</h2>
+    </div>
+    <div class="form-body">
+
+      <div class="form-group">
+        <label>סוג פעולה *</label>
+        <select id="txnType" onchange="onTypeChange()">
+          <option value="">בחר סוג...</option>
+          <option value="family_expense">הוצאה פרטית של אח/אחות</option>
+          <option value="parent_funded_expense">הוצאה מכספי ההורה</option>
+          <option value="advance_to_sibling">העברה לאח/אחות מכספי ההורה</option>
+          <option value="reimbursement_to_sibling">החזר לאח/אחות</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="personField" style="display:none;">
+        <label id="personLabel">שם האח/אחות *</label>
+        <select id="txnPerson">
+          <option value="">בחר...</option>
+          <option value="dadi">דדי</option>
+          <option value="eti">אתי</option>
+          <option value="orly">אורלי</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>תאריך *</label>
+        <input type="date" id="txnDate" />
+      </div>
+
+      <div class="form-group" id="amountField">
+        <label>סכום (₪) *</label>
+        <input type="number" id="txnAmount" placeholder="0" min="0" />
+      </div>
+
+      <div class="form-group" id="categoryField" style="display:none;">
+        <label>קטגוריה</label>
+        <select id="txnCategory">
+          <option value="">בחר קטגוריה...</option>
+          <option value="ציוד רפואי">ציוד רפואי</option>
+          <option value="ציוד סיעודי">ציוד סיעודי</option>
+          <option value="חיתולים / מוצרי ספיגה">חיתולים / מוצרי ספיגה</option>
+          <option value="אגרות / תשלומים למדינה">אגרות / תשלומים למדינה</option>
+          <option value="מטפל / שירות טיפולי">מטפל / שירות טיפולי</option>
+          <option value="חוות דעת / ייעוץ רפואי">חוות דעת / ייעוץ רפואי</option>
+          <option value="תרופות / פארם">תרופות / פארם</option>
+          <option value="נסיעות / לוגיסטיקה">נסיעות / לוגיסטיקה</option>
+          <option value="אחר">אחר</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>תיאור</label>
+        <input type="text" id="txnDescription" placeholder="תיאור קצר..." />
+      </div>
+
+      <div class="form-group">
+        <label>הערות</label>
+        <textarea id="txnNotes" placeholder="הערות נוספות..." rows="3"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>קובץ מצורף (קבלה / חשבונית)</label>
+        <input type="file" id="txnFile" accept=".jpg,.jpeg,.png,.pdf" />
+      </div>
+
+      <div class="form-error" id="formError" style="display:none;"></div>
+
+      <button class="save-btn" onclick="saveTransaction()">שמור פעולה</button>
+
     </div>
   </div>
 
@@ -278,7 +457,88 @@
     document.getElementById('userSelectScreen').style.display = 'none';
     document.getElementById('dashboardScreen').style.display = 'block';
     document.getElementById('currentUserName').textContent = 'שלום, ' + name;
+    // כפתור הוספה רק לאדמין
+    const role = localStorage.getItem('mama_user_role');
+    if (role === 'admin') {
+      document.getElementById('addBtnContainer').style.display = 'block';
+    }
     loadDashboard();
+  }
+
+  // פתיחת/סגירת מסך הוספה
+  function openAddScreen() {
+    document.getElementById('addScreen').style.display = 'block';
+    // הגדרת תאריך היום כברירת מחדל
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('txnDate').value = today;
+  }
+
+  function closeAddScreen() {
+    document.getElementById('addScreen').style.display = 'none';
+    resetForm();
+  }
+
+  function resetForm() {
+    document.getElementById('txnType').value = '';
+    document.getElementById('txnPerson').value = '';
+    document.getElementById('txnDate').value = '';
+    document.getElementById('txnAmount').value = '';
+    document.getElementById('txnCategory').value = '';
+    document.getElementById('txnDescription').value = '';
+    document.getElementById('txnNotes').value = '';
+    document.getElementById('txnFile').value = '';
+    document.getElementById('formError').style.display = 'none';
+    onTypeChange();
+  }
+
+  function onTypeChange() {
+    const type = document.getElementById('txnType').value;
+    const personField = document.getElementById('personField');
+    const personLabel = document.getElementById('personLabel');
+    const categoryField = document.getElementById('categoryField');
+
+    // שדה אח/אחות
+    if (type === 'family_expense' || type === 'advance_to_sibling' || type === 'reimbursement_to_sibling') {
+      personField.style.display = 'block';
+      if (type === 'advance_to_sibling') personLabel.textContent = 'למי הועבר *';
+      else if (type === 'reimbursement_to_sibling') personLabel.textContent = 'למי הוחזר *';
+      else personLabel.textContent = 'שם האח/אחות *';
+    } else {
+      personField.style.display = 'none';
+    }
+
+    // קטגוריה - רק בהוצאות
+    if (type === 'family_expense' || type === 'parent_funded_expense') {
+      categoryField.style.display = 'block';
+    } else {
+      categoryField.style.display = 'none';
+    }
+  }
+
+  function validateForm() {
+    const type = document.getElementById('txnType').value;
+    const date = document.getElementById('txnDate').value;
+    const amount = document.getElementById('txnAmount').value;
+    const person = document.getElementById('txnPerson').value;
+
+    if (!type) return 'יש לבחור סוג פעולה';
+    if (!date) return 'יש לבחור תאריך';
+    if (!amount || Number(amount) <= 0) return 'יש להזין סכום תקין';
+    if ((type === 'family_expense' || type === 'advance_to_sibling' || type === 'reimbursement_to_sibling') && !person) {
+      return 'יש לבחור אח/אחות';
+    }
+    return null;
+  }
+
+  async function saveTransaction() {
+    const error = validateForm();
+    if (error) {
+      document.getElementById('formError').textContent = error;
+      document.getElementById('formError').style.display = 'block';
+      return;
+    }
+    // השמירה תתווסף בחלק ב'
+    alert('שמירה תתווסף בחלק הבא');
   }
 
   function renderSiblingCards(transactions) {
