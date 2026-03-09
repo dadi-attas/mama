@@ -115,6 +115,58 @@
       color: #aaa;
     }
     .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    /* סיכום אחים */
+    .siblings-section { margin-bottom: 24px; }
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #888;
+      margin-bottom: 10px;
+      padding-right: 4px;
+    }
+    .sibling-card {
+      background: white;
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .sibling-card:active { transform: scale(0.98); }
+    .sibling-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .sibling-name { font-size: 17px; font-weight: 700; color: #1a1a2e; }
+    .sibling-status {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+    .status-balanced { background: #e8f5e9; color: #2e7d32; }
+    .status-credit { background: #fff3e0; color: #e65100; }
+    .status-owed { background: #ffebee; color: #c62828; }
+    .sibling-rows { display: flex; flex-direction: column; gap: 6px; }
+    .sibling-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #666;
+    }
+    .sibling-row span:last-child { font-weight: 600; color: #1a1a2e; }
+    .sibling-balance-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      font-weight: 700;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #f0f0f0;
+    }
     .empty-text { font-size: 16px; }
   </style>
 </head>
@@ -164,6 +216,12 @@
           <div class="card-label">סך כל הפעולות</div>
           <div class="card-amount" id="totalTransactions">0</div>
         </div>
+      </div>
+
+      <!-- סיכום לפי אח/אחות -->
+      <div class="siblings-section">
+        <div class="section-title">מצב לפי אח/אחות</div>
+        <div id="siblingCards"></div>
       </div>
 
       <!-- Empty state -->
@@ -221,6 +279,52 @@
     loadDashboard();
   }
 
+  function renderSiblingCards(transactions) {
+    const siblings = [
+      { id: 'dadi', name: 'דדי' },
+      { id: 'eti', name: 'אתי' },
+      { id: 'orly', name: 'אורלי' }
+    ];
+
+    const container = document.getElementById('siblingCards');
+    container.innerHTML = '';
+
+    siblings.forEach(sibling => {
+      const myTransactions = transactions.filter(t => t.personId === sibling.id);
+      const ownExpenses = myTransactions.filter(t => t.type === 'family_expense').reduce((s, t) => s + t.amount, 0);
+      const advances = myTransactions.filter(t => t.type === 'advance_to_sibling').reduce((s, t) => s + t.amount, 0);
+      const reimbursements = myTransactions.filter(t => t.type === 'reimbursement_to_sibling').reduce((s, t) => s + t.amount, 0);
+      const netBalance = (advances + reimbursements) - ownExpenses;
+
+      let statusClass, statusText;
+      if (netBalance > 0) { statusClass = 'status-credit'; statusText = 'נשארה יתרה ביד'; }
+      else if (netBalance < 0) { statusClass = 'status-owed'; statusText = 'מגיע לו כסף'; }
+      else { statusClass = 'status-balanced'; statusText = 'מאוזן'; }
+
+      const card = document.createElement('div');
+      card.className = 'sibling-card';
+      card.onclick = () => openHistory('sibling_' + sibling.id);
+      card.innerHTML = `
+        <div class="sibling-header">
+          <div class="sibling-name">${sibling.name}</div>
+          <div class="sibling-status ${statusClass}">${statusText}</div>
+        </div>
+        <div class="sibling-rows">
+          <div class="sibling-row"><span>הוציא מכיסו</span><span>₪${ownExpenses.toLocaleString()}</span></div>
+          <div class="sibling-row"><span>קיבל מכספי ההורה</span><span>₪${advances.toLocaleString()}</span></div>
+          <div class="sibling-row"><span>קיבל החזרים</span><span>₪${reimbursements.toLocaleString()}</span></div>
+          <div class="sibling-balance-row">
+            <span>יתרה נטו</span>
+            <span style="color:${netBalance > 0 ? '#e65100' : netBalance < 0 ? '#c62828' : '#2e7d32'}">
+              ${netBalance >= 0 ? '₪' + netBalance.toLocaleString() : '-₪' + Math.abs(netBalance).toLocaleString()}
+            </span>
+          </div>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
   // פתיחת היסטוריה (יושלם בפרק 4)
   function openHistory(type) {
     console.log('פתיחת היסטוריה:', type);
@@ -250,6 +354,7 @@
       document.getElementById('totalReimbursements').textContent = '₪' + reimbursements.toLocaleString();
       document.getElementById('totalTransactions').textContent = transactions.length;
 
+      renderSiblingCards(transactions);
       if (transactions.length === 0) {
         document.getElementById('emptyState').style.display = 'block';
       }
